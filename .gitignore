@@ -1,0 +1,10 @@
+build/**
+*.*
+!src/*.cpp
+!src/*.c
+!include/*.h
+!include/*.hpp
+!CMakeLists.txt
+!LICENSE
+!README.md
+!.gitignore
