@@ -1,0 +1,3 @@
+[submodule "helgarahi"]
+	path = helgarahi
+	url = https://github.com/Sylow104/helgarahi.git
