@@ -4,6 +4,7 @@ extern "C"
 {
 #endif
 #include <sqlite3.h>
+#include "helgarahi.h"
 
 
 #ifdef __cplusplus
