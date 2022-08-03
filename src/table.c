@@ -156,11 +156,10 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 	header_cell_t *to_use;
 	cell_t *cur;
 
-	/*
 	if (!to_mod || !db) {
 		return -1;
 	}
-*/
+
 	if (!to_mod->num_selected) {
 		return -2;
 	}
@@ -185,5 +184,53 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 	strcat(buffer, ");");
 	printf("sql stmt: %s\n", buffer);
 
-	return 0; //sqlite3_exec(db, buffer, 0x0, 0x0, 0x0);
+	return sqlite3_exec(db, buffer, 0x0, 0x0, 0x0);
+}
+
+int table_migrate(table_t *to_op, sqlite3 *db, const char *tbl_name)
+{
+	size_t cur_row, cur_col;
+	sqlite3_stmt *stmt;
+	int rc = 0;
+	char buffer[512];
+	cell_t *cur_cell;
+	cell_t *row_base;
+
+	snprintf(buffer, 512, "insert into %s values (", tbl_name);
+	for (cur_col = 0; cur_col < to_op->num_selected; cur_col++) {
+		strcat(buffer, "?");
+		if (cur_col + 1 < to_op->num_selected) {
+			strcat(buffer, ", ");
+		}
+	}
+	strcat(buffer, ");");
+	if (sqlite3_prepare(db, buffer, -1, &stmt, 0x0)) {
+		return -1;
+	}
+
+	for (cur_row = 1; cur_row < to_op->src->num_rows; cur_row++) {
+		row_base = &to_op->src->cells[cur_row * to_op->src->num_cols];
+		for (cur_col = 0; cur_col < to_op->num_selected; cur_col++) {
+			size_t src_index = to_op->header_cells[cur_col].index;
+			cur_cell = &row_base[src_index];
+			rc = sqlite3_bind_text(stmt, cur_col + 1, 
+				cur_cell->content, -1, 0x0);
+			if (rc != SQLITE_OK) {
+				goto exit;
+			}
+		}
+
+		rc = sqlite3_step(stmt);
+		if (rc == SQLITE_DONE) {
+			rc = 0;
+		} else {
+			goto exit;
+		}
+		sqlite3_reset(stmt);
+		sqlite3_clear_bindings(stmt);
+	}
+
+exit:
+	sqlite3_finalize(stmt);
+	return rc;
 }
