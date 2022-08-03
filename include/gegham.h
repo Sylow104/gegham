@@ -8,11 +8,10 @@ extern "C"
 
 typedef enum header_type
 {
-	TYPE_UNK,
+	TYPE_NONE,
 	TYPE_TEXT = 0b1,
 	TYPE_INT = 0b10,
 	TYPE_REAL = 0b100,
-	TYPE_NONE = 0b1000
 } header_type_t;
 
 typedef struct header_cell
@@ -33,6 +32,7 @@ typedef struct table
 } table_t;
 table_t *table_src_import(sheet_t *input);
 int table_select_column(table_t *to_mod, size_t index, bool is_pk);
+int table_select_all_columns(table_t *to_mod, size_t pk_index);
 int table_has_header(table_t *to_mod, bool option);
 int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name);
 

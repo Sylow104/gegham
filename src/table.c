@@ -28,7 +28,7 @@ table_t *table_src_import(sheet_t *input)
 
 header_type_t column_type(table_t *to_check, size_t index)
 {
-	header_type_t to_ret = TYPE_UNK;
+	header_type_t to_ret = TYPE_NONE;
 	cell_t *cur;
 	size_t *n_cols = &to_check->src->num_cols;
 	size_t *n_rows = &to_check->src->num_rows;
@@ -43,7 +43,6 @@ header_type_t column_type(table_t *to_check, size_t index)
 	cur = &start[*n_cols + index];
 	for (size_t i_row = 1; i_row < *n_rows; i_row++, cur += *n_cols) {
 		if (!cur->content) {
-			to_ret |= TYPE_NONE;
 			continue;
 		}
 		uint_result = strtol(cur->content, &tail, 0);
@@ -60,11 +59,29 @@ header_type_t column_type(table_t *to_check, size_t index)
 		to_ret |= TYPE_TEXT;
 	}
 	
-	if (to_ret & TYPE_TEXT && to_ret & 0b111) {
+	if (to_ret & TYPE_TEXT || !to_ret) {
 		to_ret = TYPE_TEXT;
 	}
 
 	return to_ret;
+}
+
+int column_build(header_cell_t *header, char *buffer)
+{
+	switch (header->type) {
+		case TYPE_TEXT:
+			strcat(buffer, "\'%s\' TEXT");
+			break;
+		case TYPE_INT:
+			strcat(buffer, "\'%s\' INTEGER");
+			break;
+		case TYPE_REAL:
+			strcat(buffer, "\'%s\' REAL");
+			break;
+		default:
+			return -1;
+	}
+	return 0;
 }
 
 int table_select_column(table_t *to_mod, size_t index, bool is_pk)
@@ -104,6 +121,7 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 {
 	char buffer[2048];
 	sqlite3_stmt *stmt;
+	header_cell_t *to_use;
 	if (!to_mod || !db) {
 		return -1;
 	}
@@ -113,6 +131,22 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 	}
 
 	snprintf(buffer, 2048, "create table if not exists %s (", tbl_name);
+	for (size_t i = 0; i < to_mod->num_selected; i++) {
+		to_use = &to_mod->header_cells[i];
+		if (column_build(to_use, buffer)) {
+			return -3;
+		}
+		if (i + 1 > to_mod->num_selected) {
+			strcat(buffer, ", ");
+		}
+	}
+	if (to_mod->pk) {
+		strcat(buffer, ", primary key ");
+		strcat(buffer, to_mod->src->cells[to_mod->pk->index].content);
+	}
 
-	return sqlite3_exec(db, buffer, 0x0, 0x0, 0x0);
+	strcat(buffer, ");");
+	abort();
+
+	return 0; //sqlite3_exec(db, buffer, 0x0, 0x0, 0x0);
 }
