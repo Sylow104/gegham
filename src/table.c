@@ -4,7 +4,7 @@
 table_t *table_src_import(sheet_t *input)
 {
 	table_t *to_ret;
-	if (input) {
+	if (!input) {
 		return 0x0;
 	}
 	
@@ -24,6 +24,15 @@ table_t *table_src_import(sheet_t *input)
 	to_ret->pk = 0x0;
 
 	return to_ret;
+}
+
+int table_destroy(table_t *obj)
+{
+	if (obj) {
+		free(obj->header_cells);
+		free(obj);
+	}
+	return 0;
 }
 
 header_type_t column_type(table_t *to_check, size_t index)
@@ -82,10 +91,30 @@ int table_select_column(table_t *to_mod, size_t index, bool is_pk)
 	if (is_pk && !to_mod->pk) {
 		to_mod->pk = target;
 	} else {
-		return -10;
+		return 1;
 	}
 
 	return 0;
+}
+
+int table_select_all_columns(table_t *to_mod, ssize_t pk_index)
+{
+	int rc = 0;
+	for (to_mod->num_selected = 0; to_mod->num_selected < 
+			to_mod->src->num_cols; ) {
+		if (pk_index == to_mod->num_selected) {
+			rc = table_select_column(to_mod, 
+				to_mod->num_selected, true);
+		} else {
+			rc = table_select_column(to_mod,
+				to_mod->num_selected, false);
+		}
+		if (rc < 0) {
+			break;
+		}
+	}
+
+	return rc;
 }
 
 int table_has_header(table_t *to_mod, bool option)
@@ -127,22 +156,23 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 	header_cell_t *to_use;
 	cell_t *cur;
 
+	/*
 	if (!to_mod || !db) {
 		return -1;
 	}
-
+*/
 	if (!to_mod->num_selected) {
 		return -2;
 	}
 
-	snprintf(buffer, 2048, "create table if not exists %s (", tbl_name);
+	snprintf(buffer, 2048, "create table if not exists \'%s\' (", tbl_name);
 	for (size_t i = 0; i < to_mod->num_selected; i++) {
 		to_use = &to_mod->header_cells[i];
 		cur = &to_mod->src->cells[to_use->index];
 		if (column_build(cur, to_use->type, buffer)) {
 			return -3;
 		}
-		if (i + 1 > to_mod->num_selected) {
+		if (i + 1 < to_mod->num_selected) {
 			strcat(buffer, ", ");
 		}
 	}
