@@ -1,5 +1,5 @@
 # gegham
-cli front end for helgarahi
+cli front end for helgarahi; import from XLSX to sqlite database
 
 # requirements
 - C/C++ compiler and respective C/C++ library
