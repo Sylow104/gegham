@@ -66,24 +66,6 @@ header_type_t column_type(table_t *to_check, size_t index)
 	return to_ret;
 }
 
-int column_build(header_cell_t *header, char *buffer)
-{
-	switch (header->type) {
-		case TYPE_TEXT:
-			strcat(buffer, "\'%s\' TEXT");
-			break;
-		case TYPE_INT:
-			strcat(buffer, "\'%s\' INTEGER");
-			break;
-		case TYPE_REAL:
-			strcat(buffer, "\'%s\' REAL");
-			break;
-		default:
-			return -1;
-	}
-	return 0;
-}
-
 int table_select_column(table_t *to_mod, size_t index, bool is_pk)
 {
 	if (index >= to_mod->src->num_cols || index < 0) {
@@ -117,11 +99,34 @@ int table_has_header(table_t *to_mod, bool option)
 	return 0;
 }
 
+int column_build(cell_t *cell, header_type_t type, char *ext_buffer)
+{
+	char buffer[64];
+	switch (type) {
+		case TYPE_NONE:
+		case TYPE_TEXT:
+			snprintf(buffer, 64, "\'%s\' TEXT", cell->content);
+			break;
+		case TYPE_INT:
+			snprintf(buffer, 64, "\'%s\' INTEGER", cell->content);
+			break;
+		case TYPE_REAL:
+			snprintf(buffer, 64, "\'%s\' REAL", cell->content);
+			break;
+		default:
+			return -1;
+	}
+	strcat(ext_buffer, buffer);
+	return 0;
+}
+
 int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 {
 	char buffer[2048];
 	sqlite3_stmt *stmt;
 	header_cell_t *to_use;
+	cell_t *cur;
+
 	if (!to_mod || !db) {
 		return -1;
 	}
@@ -133,7 +138,8 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 	snprintf(buffer, 2048, "create table if not exists %s (", tbl_name);
 	for (size_t i = 0; i < to_mod->num_selected; i++) {
 		to_use = &to_mod->header_cells[i];
-		if (column_build(to_use, buffer)) {
+		cur = &to_mod->src->cells[to_use->index];
+		if (column_build(cur, to_use->type, buffer)) {
 			return -3;
 		}
 		if (i + 1 > to_mod->num_selected) {
@@ -141,12 +147,13 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 		}
 	}
 	if (to_mod->pk) {
-		strcat(buffer, ", primary key ");
+		strcat(buffer, ", primary key (");
 		strcat(buffer, to_mod->src->cells[to_mod->pk->index].content);
+		strcat(buffer, ")");
 	}
 
 	strcat(buffer, ");");
-	abort();
+	printf("sql stmt: %s\n", buffer);
 
 	return 0; //sqlite3_exec(db, buffer, 0x0, 0x0, 0x0);
 }
