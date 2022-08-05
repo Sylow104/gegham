@@ -16,6 +16,7 @@ typedef struct header_cell
 
 typedef struct table
 {
+	char *name;
 	sheet_t *src;
 	header_cell_t *header_cells;
 	size_t num_selected;
@@ -23,10 +24,10 @@ typedef struct table
 } table_t;
 
 
-table_t *table_src_import(sheet_t *input)
+table_t *table_src_import(sheet_t *input, const char *tbl_name)
 {
 	table_t *to_ret;
-	if (!input) {
+	if (!input || !tbl_name) {
 		return 0x0;
 	}
 	
@@ -45,6 +46,9 @@ table_t *table_src_import(sheet_t *input)
 	to_ret->num_selected = 0;
 	to_ret->pk = 0x0;
 
+	to_ret->name = strdup(tbl_name);
+
+
 	return to_ret;
 }
 
@@ -52,6 +56,9 @@ int table_destroy(table_t *obj)
 {
 	if (obj) {
 		free(obj->header_cells);
+		if (obj->name) {
+			free(obj->name);
+		}
 		free(obj);
 	}
 	return 0;
@@ -187,7 +194,7 @@ int column_build(cell_t *cell, header_type_t type, char *ext_buffer)
 	return 0;
 }
 
-int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
+int table_build(table_t *to_mod, sqlite3 *db)
 {
 	char buffer[2048];
 	sqlite3_stmt *stmt;
@@ -202,7 +209,8 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 		return -2;
 	}
 
-	snprintf(buffer, 2048, "create table if not exists \'%s\' (", tbl_name);
+	snprintf(buffer, 2048, "create table if not exists \'%s\' (", 
+		to_mod->name);
 	for (size_t i = 0; i < to_mod->num_selected; i++) {
 		to_use = &to_mod->header_cells[i];
 		cur = &to_mod->src->cells[to_use->index];
@@ -225,7 +233,7 @@ int table_build(table_t *to_mod, sqlite3 *db, const char *tbl_name)
 	return sqlite3_exec(db, buffer, 0x0, 0x0, 0x0);
 }
 
-int table_migrate(table_t *to_op, sqlite3 *db, const char *tbl_name)
+int table_migrate(table_t *to_op, sqlite3 *db)
 {
 	size_t cur_row, cur_col;
 	sqlite3_stmt *stmt;
@@ -234,7 +242,7 @@ int table_migrate(table_t *to_op, sqlite3 *db, const char *tbl_name)
 	cell_t *cur_cell;
 	cell_t *row_base;
 
-	snprintf(buffer, 512, "insert into %s values (", tbl_name);
+	snprintf(buffer, 512, "insert into %s values (", to_op->name);
 	for (cur_col = 0; cur_col < to_op->num_selected; cur_col++) {
 		strcat(buffer, "?");
 		if (cur_col + 1 < to_op->num_selected) {

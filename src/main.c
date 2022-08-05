@@ -21,10 +21,10 @@ int main(int argc, const char *argv[])
 		exit(-2);
 	}
 	// main procedures here
-	table_t *to_op = table_src_import(&file->workbook.sheets[0]);
+	table_t *to_op = table_src_import(&file->workbook.sheets[0], argv[3]);
 	table_select_all_columns(to_op, -1);
-	table_build(to_op, db, argv[3]);
-	int rc = table_migrate(to_op, db, argv[3]);
+	table_build(to_op, db);
+	int rc = table_migrate(to_op, db);
 	if (rc) {
 		printf("Sqlite Err: %s\n", sqlite3_errmsg(db));
 	}
