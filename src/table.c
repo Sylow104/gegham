@@ -117,6 +117,22 @@ int table_select_all_columns(table_t *to_mod, ssize_t pk_index)
 	return rc;
 }
 
+int table_select_column_name(table_t *to_mod, const char *name)
+{
+	size_t i;
+	char *src_comp;
+	for (i = 0; i < to_mod->src->num_cols; i++) {
+		src_comp = to_mod->src->cells[i].content;
+		if (!src_comp) {
+			continue;
+		}
+		if (!strcmp(name, src_comp)) {
+			return table_select_column(to_mod, i, false);
+		}
+	}
+	return -1;
+}
+
 int table_has_header(table_t *to_mod, bool option)
 {
 	if (!to_mod) {
