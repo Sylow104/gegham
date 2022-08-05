@@ -1,5 +1,27 @@
 #include "gegham.h"
 
+typedef enum header_type
+{
+	TYPE_NONE,
+	TYPE_TEXT = 0b1,
+	TYPE_INT = 0b10,
+	TYPE_REAL = 0b100,
+} header_type_t;
+
+typedef struct header_cell
+{
+	size_t index;
+	header_type_t type;
+} header_cell_t;
+
+typedef struct table
+{
+	sheet_t *src;
+	header_cell_t *header_cells;
+	size_t num_selected;
+	header_cell_t *pk;
+} table_t;
+
 
 table_t *table_src_import(sheet_t *input)
 {
