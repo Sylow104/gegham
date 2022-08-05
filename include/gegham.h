@@ -27,8 +27,6 @@ typedef struct table
 	header_cell_t *header_cells;
 	size_t num_selected;
 	header_cell_t *pk;
-	//bool has_header;
-	size_t cursor;
 } table_t;
 table_t *table_src_import(sheet_t *input);
 int table_destroy(table_t *obj);
