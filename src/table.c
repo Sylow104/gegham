@@ -56,9 +56,7 @@ int table_destroy(table_t *obj)
 {
 	if (obj) {
 		free(obj->header_cells);
-		if (obj->name) {
-			free(obj->name);
-		}
+		free(obj->name);
 		free(obj);
 	}
 	return 0;
